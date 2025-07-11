@@ -1,0 +1,96 @@
+plugins {
+    id 'java'
+}
+
+group 'com.finalproject'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 11
+targetCompatibility = 11
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Cucumber dependencies
+    testImplementation 'io.cucumber:cucumber-java:7.12.1'
+    testImplementation 'io.cucumber:cucumber-junit:7.12.1'
+    testImplementation 'io.cucumber:cucumber-picocontainer:7.12.1'
+    
+    // REST Assured for API testing
+    testImplementation 'io.rest-assured:rest-assured:5.3.1'
+    testImplementation 'io.rest-assured:json-path:5.3.1'
+    testImplementation 'io.rest-assured:json-schema-validator:5.3.1'
+    
+    // Selenium for Web UI testing
+    testImplementation 'org.seleniumhq.selenium:selenium-java:4.10.0'
+    testImplementation 'org.seleniumhq.selenium:selenium-chrome-driver:4.10.0'
+    
+    // WebDriverManager to handle browser driver setup
+    testImplementation 'io.github.bonigarcia:webdrivermanager:5.4.0'
+    
+    // JSON handling
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    
+    // JUnit
+    testImplementation 'junit:junit:4.13.2'
+    
+    // Assertions
+    testImplementation 'org.assertj:assertj-core:3.24.2'
+}
+
+configurations {
+    cucumberRuntime {
+        extendsFrom testImplementation
+    }
+}
+
+// Task to run API tests
+task runApiTests() {
+    dependsOn assemble, testClasses
+    doLast {
+        javaexec {
+            main = "io.cucumber.core.cli.Main"
+            classpath = configurations.cucumberRuntime + sourceSets.main.output + sourceSets.test.output
+            args = [
+                    '--plugin', 'pretty',
+                    '--plugin', 'html:target/cucumber-reports/api-report.html',
+                    '--plugin', 'json:target/cucumber-reports/api-report.json',
+                    '--glue', 'com.finalproject.api.steps',
+                    '--glue', 'com.finalproject.common',
+                    '--tags', '@api',
+                    'src/test/resources/features/api'
+            ]
+        }
+    }
+}
+
+// Task to run Web tests
+task runWebTests() {
+    dependsOn assemble, testClasses
+    doLast {
+        javaexec {
+            main = "io.cucumber.core.cli.Main"
+            classpath = configurations.cucumberRuntime + sourceSets.main.output + sourceSets.test.output
+            args = [
+                    '--plugin', 'pretty',
+                    '--plugin', 'html:target/cucumber-reports/web-report.html',
+                    '--plugin', 'json:target/cucumber-reports/web-report.json',
+                    '--glue', 'com.finalproject.web.steps',
+                    '--glue', 'com.finalproject.common',
+                    '--tags', '@web',
+                    'src/test/resources/features/web'
+            ]
+        }
+    }
+}
+
+// Task to run all tests
+task runAllTests() {
+    dependsOn runApiTests, runWebTests
+}
+
+test {
+    systemProperty "cucumber.filter.tags", System.getProperty("cucumber.filter.tags")
+}
